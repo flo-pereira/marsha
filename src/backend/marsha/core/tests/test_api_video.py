@@ -9,7 +9,9 @@ from django.test import TestCase, override_settings
 import pytz
 from rest_framework_simplejwt.tokens import AccessToken
 
+from .. import api
 from ..api import timezone
+from ..defaults import IDLE, LIVE, LIVE_CHOICES, STATE_CHOICES
 from ..factories import (
     ThumbnailFactory,
     TimedTextTrackFactory,
@@ -50,7 +52,7 @@ ASOu/Da3/eg8PI5Rsh6ubNVlEAMQdDFhL/TpfaHqSwim6mxbrQ==
 """
 
 # We don't enforce arguments documentation in tests
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument,too-many-lines
 
 
 class VideoAPITest(TestCase):
@@ -198,6 +200,8 @@ class VideoAPITest(TestCase):
                 },
                 "should_use_subtitle_as_transcript": False,
                 "has_transcript": False,
+                "live_state": None,
+                "live_info": {},
             },
         )
 
@@ -262,6 +266,8 @@ class VideoAPITest(TestCase):
                 "urls": None,
                 "should_use_subtitle_as_transcript": False,
                 "has_transcript": False,
+                "live_state": None,
+                "live_info": {},
             },
         )
 
@@ -298,6 +304,8 @@ class VideoAPITest(TestCase):
                 "urls": None,
                 "should_use_subtitle_as_transcript": False,
                 "has_transcript": False,
+                "live_state": None,
+                "live_info": {},
             },
         )
 
@@ -927,3 +935,141 @@ class VideoAPITest(TestCase):
             self.assertEqual(
                 content, {"detail": "Authentication credentials were not provided."}
             )
+
+    def test_api_video_initiate_live_anonymous_user(self):
+        """Anonymous users are not allowed to initiate a live."""
+        video = VideoFactory()
+
+        response = self.client.post("/api/videos/{!s}/initiate-live/".format(video.id))
+
+        self.assertEqual(response.status_code, 401)
+        content = json.loads(response.content)
+        self.assertEqual(
+            content, {"detail": "Authentication credentials were not provided."}
+        )
+
+    def test_api_video_instructor_initiate_live_in_read_only(self):
+        """An instructor with read_only set to true should not be able to initiate a live."""
+        video = VideoFactory()
+        jwt_token = AccessToken()
+        jwt_token.payload["resource_id"] = str(video.id)
+        jwt_token.payload["roles"] = [random.choice(["instructor", "administrator"])]
+        jwt_token.payload["permissions"] = {"can_update": False}
+
+        response = self.client.post(
+            "/api/videos/{!s}/initiate-live/".format(video.id),
+            HTTP_AUTHORIZATION="Bearer {!s}".format(jwt_token),
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_api_video_student_initiate_live(self):
+        """A student should not be able to initiate a live."""
+        video = VideoFactory()
+        jwt_token = AccessToken()
+        jwt_token.payload["resource_id"] = str(video.id)
+        jwt_token.payload["roles"] = ["student"]
+
+        response = self.client.post(
+            "/api/videos/{!s}/initiate-live/".format(video.id),
+            HTTP_AUTHORIZATION="Bearer {!s}".format(jwt_token),
+        )
+
+        self.assertEqual(response.status_code, 403)
+        content = json.loads(response.content)
+        self.assertEqual(
+            content, {"detail": "You do not have permission to perform this action."}
+        )
+
+    def test_api_video_initiate_live_staff_or_user(self):
+        """Users authenticated via a session should not be able to initiate a live."""
+        for user in [UserFactory(), UserFactory(is_staff=True)]:
+            self.client.login(username=user.username, password="test")
+            video = VideoFactory()
+
+            response = self.client.post(
+                "/api/videos/{!s}/initiate-live/".format(video.id)
+            )
+            self.assertEqual(response.status_code, 401)
+            content = json.loads(response.content)
+            self.assertEqual(
+                content, {"detail": "Authentication credentials were not provided."}
+            )
+
+    def test_api_video_instructor_initiate_live(self):
+        """An instructor should be able to initiate a live."""
+        video = VideoFactory(id="27a23f52-3379-46a2-94fa-697b59cfe3c7",)
+        jwt_token = AccessToken()
+        jwt_token.payload["resource_id"] = str(video.id)
+        jwt_token.payload["roles"] = [random.choice(["instructor", "administrator"])]
+        jwt_token.payload["permissions"] = {"can_update": True}
+
+        # initiate a live video,
+        # It should generate a key file with the Unix timestamp of the present time
+        now = datetime(2018, 8, 8, tzinfo=pytz.utc)
+        live_info = {
+            "medialive": {
+                "input": {
+                    "id": "medialive_input_1",
+                    "endpoints": ["https://live_endpoint1", "https://live_endpoint2"],
+                },
+                "channel": {"id": "medialive_channel_1"},
+            },
+            "mediapackage": {
+                "id": "mediapackage_channel_1",
+                "endpoints": {
+                    "cmaf": {
+                        "id": "endpoint1",
+                        "url": "https://channel_endpoint1/live.m3u8",
+                    },
+                    "dash": {
+                        "id": "endpoint2",
+                        "url": "https://channel_endpoint2/live.mpd",
+                    },
+                },
+            },
+        }
+        with mock.patch.object(timezone, "now", return_value=now), mock.patch.object(
+            api, "create_live_stream", return_value=live_info
+        ):
+            response = self.client.post(
+                "/api/videos/{!s}/initiate-live/".format(video.id),
+                HTTP_AUTHORIZATION="Bearer {!s}".format(jwt_token),
+            )
+        self.assertEqual(response.status_code, 200)
+        content = json.loads(response.content)
+
+        self.assertEqual(
+            content,
+            {
+                "description": video.description,
+                "id": str(video.id),
+                "title": video.title,
+                "active_stamp": None,
+                "is_ready_to_show": False,
+                "show_download": True,
+                "upload_state": "live",
+                "thumbnail": None,
+                "timed_text_tracks": [],
+                "urls": {
+                    "manifests": {
+                        "hls": "https://channel_endpoint1/live.m3u8",
+                        "dash": "https://channel_endpoint2/live.mpd",
+                    },
+                    "mp4": {},
+                    "thumbnails": {},
+                },
+                "should_use_subtitle_as_transcript": False,
+                "has_transcript": False,
+                "live_state": "idle",
+                "live_info": {
+                    "medialive": {
+                        "input": {
+                            "endpoints": [
+                                "https://live_endpoint1",
+                                "https://live_endpoint2",
+                            ],
+                        }
+                    }
+                },
+            },
+        )

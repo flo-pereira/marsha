@@ -1,10 +1,11 @@
 """This module holds the models for the marsha project."""
 from django.conf import settings
-from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.fields import ArrayField, JSONField
 from django.db import models
 from django.utils.functional import lazy
 from django.utils.translation import gettext_lazy as _
 
+from ..defaults import LIVE, LIVE_CHOICES
 from ..utils.time_utils import to_timestamp
 from .base import AbstractImage, BaseModel
 from .file import BaseFile, UploadableFileMixin
@@ -29,6 +30,20 @@ class Video(BaseFile):
         blank=True,
         verbose_name=_("video sizes"),
         help_text=_("List of available sizes for this video"),
+    )
+    live_info = JSONField(
+        null=True,
+        blank=True,
+        verbose_name=_("Live info"),
+        help_text=_("Information needed to manage live streaming"),
+    )
+    live_state = models.CharField(
+        max_length=20,
+        verbose_name=_("live state"),
+        help_text=_("state of the live mode."),
+        choices=LIVE_CHOICES,
+        null=True,
+        blank=True,
     )
 
     class Meta:
@@ -86,6 +101,15 @@ class Video(BaseFile):
             self.resolutions = extra_parameters.get("resolutions")
 
         super().update_upload_state(upload_state, uploaded_on, **extra_parameters)
+
+    @property
+    def is_ready_to_show(self):
+        """Whether the file is ready to display (ie) has been sucessfully uploaded.
+
+        The value of this field seems to be trivially derived from the value of the
+        `uploaded_on` field but it is necessary for conveniency and clarity in the client.
+        """
+        return self.uploaded_on is not None or self.live_state == LIVE
 
 
 class BaseTrack(UploadableFileMixin, BaseModel):

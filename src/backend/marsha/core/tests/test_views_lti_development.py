@@ -37,7 +37,7 @@ class DevelopmentLTIViewTestCase(TestCase):
         """In development, passport creation and LTI verification can be bypassed for a student."""
         video = VideoFactory(
             playlist__consumer_site__domain="example.com",
-            upload_state=random.choice([s[0] for s in STATE_CHOICES]),
+            upload_state=random.choice([s[0] for s in STATE_CHOICES if s[0] != "live"]),
             uploaded_on="2019-09-24 07:24:40+00",
             resolutions=[144, 240],
         )
@@ -142,6 +142,8 @@ class DevelopmentLTIViewTestCase(TestCase):
                 "urls": None,
                 "should_use_subtitle_as_transcript": False,
                 "has_transcript": False,
+                "live_state": None,
+                "live_info": {},
             },
         )
         self.assertEqual(context.get("modelName"), "videos")
@@ -198,6 +200,8 @@ class DevelopmentLTIViewTestCase(TestCase):
                 "urls": None,
                 "should_use_subtitle_as_transcript": False,
                 "has_transcript": False,
+                "live_state": None,
+                "live_info": {},
             },
         )
         self.assertEqual(context.get("modelName"), "videos")

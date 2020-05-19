@@ -12,7 +12,7 @@ from django.test import TestCase, override_settings
 from pylti.common import LTIException
 from rest_framework_simplejwt.tokens import AccessToken
 
-from ..defaults import PENDING, READY, STATE_CHOICES
+from ..defaults import IDLE, LIVE, PENDING, READY, STATE_CHOICES
 from ..factories import (
     ConsumerSiteLTIPassportFactory,
     TimedTextTrackFactory,
@@ -22,7 +22,7 @@ from ..lti import LTI
 
 
 # We don't enforce arguments documentation in tests
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument,too-many-lines
 
 
 class VideoLTIViewTestCase(TestCase):
@@ -95,6 +95,244 @@ class VideoLTIViewTestCase(TestCase):
                 "urls": None,
                 "should_use_subtitle_as_transcript": False,
                 "has_transcript": False,
+                "live_state": None,
+                "live_info": {},
+            },
+        )
+        self.assertEqual(context.get("modelName"), "videos")
+        self.assertEqual(context.get("sentry_dsn"), "https://sentry.dsn")
+        self.assertEqual(context.get("environment"), "test")
+        self.assertEqual(context.get("release"), "1.2.3")
+        # Make sure we only go through LTI verification once as it is costly (getting passport +
+        # signature)
+        self.assertEqual(mock_verify.call_count, 1)
+
+    @mock.patch.object(LTI, "verify")
+    @mock.patch.object(LTI, "get_consumer_site")
+    @override_settings(SENTRY_DSN="https://sentry.dsn")
+    @override_settings(RELEASE="1.2.3")
+    def test_views_lti_video_instructor_live_mode_on(
+        self, mock_get_consumer_site, mock_verify
+    ):
+        """Validate the format of the response for a live video requested by an instructor."""
+        passport = ConsumerSiteLTIPassportFactory()
+        video = VideoFactory(
+            playlist__lti_id="course-v1:ufr+mathematics+00001",
+            playlist__consumer_site=passport.consumer_site,
+            live_state=IDLE,
+            live_info={
+                "medialive": {
+                    "input": {
+                        "id": "medialive_input_1",
+                        "endpoints": [
+                            "https://live_endpoint1",
+                            "https://live_endpoint2",
+                        ],
+                    },
+                    "channel": {"id": "medialive_channel_1"},
+                },
+                "mediapackage": {
+                    "id": "mediapackage_channel_1",
+                    "endpoints": {
+                        "cmaf": {
+                            "id": "endpoint1",
+                            "url": "https://channel_endpoint1/live.m3u8",
+                        },
+                        "dash": {
+                            "id": "endpoint2",
+                            "url": "https://channel_endpoint2/live.mpd",
+                        },
+                    },
+                },
+            },
+            upload_state=LIVE,
+        )
+        data = {
+            "resource_link_id": video.lti_id,
+            "context_id": video.playlist.lti_id,
+            "roles": "instructor",
+            "oauth_consumer_key": passport.oauth_consumer_key,
+            "user_id": "56255f3807599c377bf0e5bf072359fd",
+            "launch_presentation_locale": "fr",
+        }
+
+        mock_get_consumer_site.return_value = passport.consumer_site
+        response = self.client.post("/lti/videos/{!s}".format(video.pk), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "<html>")
+        content = response.content.decode("utf-8")
+
+        match = re.search(
+            '<div id="marsha-frontend-data" data-context="(.*)">', content
+        )
+
+        context = json.loads(unescape(match.group(1)))
+        jwt_token = AccessToken(context.get("jwt"))
+        self.assertEqual(jwt_token.payload["resource_id"], str(video.id))
+        self.assertEqual(jwt_token.payload["user_id"], data["user_id"])
+        self.assertEqual(jwt_token.payload["context_id"], data["context_id"])
+        self.assertEqual(jwt_token.payload["roles"], [data["roles"]])
+        self.assertEqual(jwt_token.payload["locale"], "fr_FR")
+        self.assertEqual(
+            jwt_token.payload["permissions"],
+            {"can_access_dashboard": True, "can_update": True},
+        )
+        self.assertDictEqual(
+            jwt_token.payload["course"],
+            {"school_name": "ufr", "course_name": "mathematics", "course_run": "00001"},
+        )
+
+        self.assertEqual(context.get("state"), "success")
+        self.assertEqual(
+            context.get("static"), {"svg": {"plyr": "/static/svg/plyr.svg"}}
+        )
+        self.assertEqual(
+            context.get("resource"),
+            {
+                "active_stamp": None,
+                "is_ready_to_show": False,
+                "show_download": True,
+                "description": video.description,
+                "id": str(video.id),
+                "upload_state": "live",
+                "timed_text_tracks": [],
+                "thumbnail": None,
+                "title": video.title,
+                "urls": {
+                    "manifests": {
+                        "hls": "https://channel_endpoint1/live.m3u8",
+                        "dash": "https://channel_endpoint2/live.mpd",
+                    },
+                    "mp4": {},
+                    "thumbnails": {},
+                },
+                "should_use_subtitle_as_transcript": False,
+                "has_transcript": False,
+                "live_state": IDLE,
+                "live_info": {
+                    "medialive": {
+                        "input": {
+                            "endpoints": [
+                                "https://live_endpoint1",
+                                "https://live_endpoint2",
+                            ],
+                        }
+                    }
+                },
+            },
+        )
+        self.assertEqual(context.get("modelName"), "videos")
+        self.assertEqual(context.get("sentry_dsn"), "https://sentry.dsn")
+        self.assertEqual(context.get("environment"), "test")
+        self.assertEqual(context.get("release"), "1.2.3")
+        # Make sure we only go through LTI verification once as it is costly (getting passport +
+        # signature)
+        self.assertEqual(mock_verify.call_count, 1)
+
+    @mock.patch.object(LTI, "verify")
+    @mock.patch.object(LTI, "get_consumer_site")
+    @override_settings(SENTRY_DSN="https://sentry.dsn")
+    @override_settings(RELEASE="1.2.3")
+    def test_views_lti_video_student_live_mode_on(
+        self, mock_get_consumer_site, mock_verify
+    ):
+        """Validate the format of the response for a live video requested by a student."""
+        passport = ConsumerSiteLTIPassportFactory()
+        video = VideoFactory(
+            playlist__lti_id="course-v1:ufr+mathematics+00001",
+            playlist__consumer_site=passport.consumer_site,
+            live_state=IDLE,
+            live_info={
+                "medialive": {
+                    "input": {
+                        "id": "medialive_input_1",
+                        "endpoints": [
+                            "https://live_endpoint1",
+                            "https://live_endpoint2",
+                        ],
+                    },
+                    "chanel": {"id": "medialive_channel_1"},
+                },
+                "mediapackage": {
+                    "id": "mediapackage_channel_1",
+                    "endpoints": {
+                        "cmaf": {
+                            "id": "endpoint1",
+                            "url": "https://channel_endpoint1/live.m3u8",
+                        },
+                        "dash": {
+                            "id": "endpoint2",
+                            "url": "https://channel_endpoint2/live.mpd",
+                        },
+                    },
+                },
+            },
+            upload_state=LIVE,
+            uploaded_on="2019-09-24 07:24:40+00",
+        )
+        data = {
+            "resource_link_id": video.lti_id,
+            "context_id": video.playlist.lti_id,
+            "roles": "student",
+            "oauth_consumer_key": passport.oauth_consumer_key,
+            "user_id": "56255f3807599c377bf0e5bf072359fd",
+            "launch_presentation_locale": "fr",
+        }
+
+        mock_get_consumer_site.return_value = passport.consumer_site
+        response = self.client.post("/lti/videos/{!s}".format(video.pk), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "<html>")
+        content = response.content.decode("utf-8")
+
+        match = re.search(
+            '<div id="marsha-frontend-data" data-context="(.*)">', content
+        )
+
+        context = json.loads(unescape(match.group(1)))
+        jwt_token = AccessToken(context.get("jwt"))
+        self.assertEqual(jwt_token.payload["resource_id"], str(video.id))
+        self.assertEqual(jwt_token.payload["user_id"], data["user_id"])
+        self.assertEqual(jwt_token.payload["context_id"], data["context_id"])
+        self.assertEqual(jwt_token.payload["roles"], [data["roles"]])
+        self.assertEqual(jwt_token.payload["locale"], "fr_FR")
+        self.assertEqual(
+            jwt_token.payload["permissions"],
+            {"can_access_dashboard": False, "can_update": False},
+        )
+        self.assertDictEqual(
+            jwt_token.payload["course"],
+            {"school_name": "ufr", "course_name": "mathematics", "course_run": "00001"},
+        )
+
+        self.assertEqual(context.get("state"), "success")
+        self.assertEqual(
+            context.get("static"), {"svg": {"plyr": "/static/svg/plyr.svg"}}
+        )
+        self.assertEqual(
+            context.get("resource"),
+            {
+                "active_stamp": "1569309880",
+                "is_ready_to_show": True,
+                "show_download": True,
+                "description": video.description,
+                "id": str(video.id),
+                "upload_state": "live",
+                "timed_text_tracks": [],
+                "thumbnail": None,
+                "title": video.title,
+                "urls": {
+                    "manifests": {
+                        "hls": "https://channel_endpoint1/live.m3u8",
+                        "dash": "https://channel_endpoint2/live.mpd",
+                    },
+                    "mp4": {},
+                    "thumbnails": {},
+                },
+                "should_use_subtitle_as_transcript": False,
+                "has_transcript": False,
+                "live_state": IDLE,
+                "live_info": {},
             },
         )
         self.assertEqual(context.get("modelName"), "videos")
@@ -194,6 +432,8 @@ class VideoLTIViewTestCase(TestCase):
                 "urls": None,
                 "should_use_subtitle_as_transcript": False,
                 "has_transcript": False,
+                "live_state": None,
+                "live_info": {},
             },
         )
         self.assertEqual(context.get("modelName"), "videos")
@@ -214,7 +454,7 @@ class VideoLTIViewTestCase(TestCase):
             playlist__is_portable_to_playlist=True,
             playlist__is_portable_to_consumer_site=True,
             playlist__title="playlist-003",
-            upload_state=random.choice([s[0] for s in STATE_CHOICES]),
+            upload_state=random.choice([s[0] for s in STATE_CHOICES if s[0] != "live"]),
             uploaded_on="2019-09-24 07:24:40+00",
             resolutions=[144, 240, 480, 720, 1080],
         )
@@ -297,6 +537,8 @@ class VideoLTIViewTestCase(TestCase):
                 },
                 "should_use_subtitle_as_transcript": False,
                 "has_transcript": False,
+                "live_state": None,
+                "live_info": {},
             },
         )
         self.assertEqual(context.get("modelName"), "videos")
@@ -316,7 +558,7 @@ class VideoLTIViewTestCase(TestCase):
             playlist__lti_id="course-v1:ufr+mathematics+00001",
             playlist__consumer_site=passport.consumer_site,
             playlist__title="playlist-002",
-            upload_state=random.choice([s[0] for s in STATE_CHOICES]),
+            upload_state=random.choice([s[0] for s in STATE_CHOICES if s[0] != "live"]),
             uploaded_on="2019-09-24 07:24:40+00",
             resolutions=[144, 240, 480],
         )
@@ -399,6 +641,8 @@ class VideoLTIViewTestCase(TestCase):
                 },
                 "should_use_subtitle_as_transcript": False,
                 "has_transcript": False,
+                "live_state": None,
+                "live_info": {},
             },
         )
         self.assertEqual(context.get("modelName"), "videos")
@@ -418,7 +662,7 @@ class VideoLTIViewTestCase(TestCase):
             playlist__lti_id="course-v1:ufr+mathematics+00001",
             playlist__consumer_site=passport.consumer_site,
             playlist__title="playlist-002",
-            upload_state=random.choice([s[0] for s in STATE_CHOICES]),
+            upload_state=random.choice([s[0] for s in STATE_CHOICES if s[0] != "live"]),
             uploaded_on="2019-09-24 07:24:40+00",
             resolutions=[144, 240, 480, 720, 1080],
         )
@@ -511,6 +755,8 @@ class VideoLTIViewTestCase(TestCase):
                 },
                 "should_use_subtitle_as_transcript": False,
                 "has_transcript": False,
+                "live_state": None,
+                "live_info": {},
             },
         )
         self.assertEqual(context.get("modelName"), "videos")
@@ -527,7 +773,7 @@ class VideoLTIViewTestCase(TestCase):
         passport = ConsumerSiteLTIPassportFactory()
         video = VideoFactory(
             playlist__consumer_site=passport.consumer_site,
-            upload_state=random.choice([s[0] for s in STATE_CHOICES]),
+            upload_state=random.choice([s[0] for s in STATE_CHOICES if s[0] != "live"]),
             uploaded_on="2019-09-24 07:24:40+00",
             resolutions=[144, 240, 480, 720, 1080],
         )
@@ -752,6 +998,8 @@ class VideoLTIViewTestCase(TestCase):
                 "urls": None,
                 "should_use_subtitle_as_transcript": False,
                 "has_transcript": True,
+                "live_state": None,
+                "live_info": {},
             },
         )
 
@@ -815,5 +1063,7 @@ class VideoLTIViewTestCase(TestCase):
                 "urls": None,
                 "should_use_subtitle_as_transcript": False,
                 "has_transcript": False,
+                "live_state": None,
+                "live_info": {},
             },
         )

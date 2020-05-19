@@ -39,7 +39,7 @@ class CacheLTIViewTestCase(TestCase):
         """Validate that responses are cached for students."""
         video1, video2 = VideoFactory.create_batch(
             2,
-            upload_state=random.choice([s[0] for s in STATE_CHOICES]),
+            upload_state=random.choice([s[0] for s in STATE_CHOICES if s[0] != "live"]),
             playlist__is_portable_to_playlist=True,
             playlist__is_portable_to_consumer_site=True,
             uploaded_on="2019-09-24 07:24:40+00",
@@ -118,7 +118,7 @@ class CacheLTIViewTestCase(TestCase):
     def test_views_lti_cache_instructor(self, mock_get_consumer_site, mock_verify):
         """Validate that responses are not cached for instructors."""
         video = VideoFactory(
-            upload_state=random.choice([s[0] for s in STATE_CHOICES]),
+            upload_state=random.choice([s[0] for s in STATE_CHOICES if s[0] != "live"]),
             uploaded_on="2019-09-24 07:24:40+00",
             resolutions=[144, 240],
         )
