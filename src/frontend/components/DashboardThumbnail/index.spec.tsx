@@ -1,4 +1,4 @@
-import { fireEvent, render, wait } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 import { ImportMock } from 'ts-mock-imports';
@@ -279,8 +279,8 @@ describe('<DashboardThumbnail />', () => {
     ).toEqual('https://example.com/default_thumbnail/144');
 
     fireEvent.click(getByText('Replace this thumbnail'));
-    await wait();
-    expect(fetchMock.calls()).toHaveLength(1);
+    await waitFor(() => expect(fetchMock.calls()).toHaveLength(1));
+
     expect(fetchMock.lastCall()![0]).toEqual('/api/thumbnails/');
     expect(fetchMock.lastCall()![1]!.headers).toEqual({
       Authorization: 'Bearer some token',

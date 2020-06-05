@@ -1,4 +1,4 @@
-import { render, wait } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import { Grommet } from 'grommet';
 import React from 'react';
@@ -19,7 +19,7 @@ jest.mock('../../data/appData', () => ({
 describe('<DashboardDocument />', () => {
   beforeEach(() => jest.useFakeTimers());
 
-  afterEach(fetchMock.restore);
+  afterEach(() => fetchMock.restore());
   afterEach(jest.resetAllMocks);
 
   it('starts polling when the document is in pending, uploading and processing', async () => {
@@ -61,9 +61,10 @@ describe('<DashboardDocument />', () => {
 
     // First backend call: the document is still processing
     jest.advanceTimersByTime(1000 * 10 + 200);
-    await wait();
+    await waitFor(() =>
+      expect(fetchMock.lastCall()![0]).toEqual('/api/documents/44/'),
+    );
 
-    expect(fetchMock.lastCall()![0]).toEqual('/api/documents/44/');
     expect(fetchMock.lastCall()![1]!.headers).toEqual({
       Authorization: 'Bearer cool_token_m8',
     });
@@ -82,9 +83,10 @@ describe('<DashboardDocument />', () => {
 
     // Second backend call
     jest.advanceTimersByTime(1000 * 30 + 200);
-    await wait();
+    await waitFor(() =>
+      expect(fetchMock.lastCall()![0]).toEqual('/api/documents/44/'),
+    );
 
-    expect(fetchMock.lastCall()![0]).toEqual('/api/documents/44/');
     expect(fetchMock.lastCall()![1]!.headers).toEqual({
       Authorization: 'Bearer cool_token_m8',
     });

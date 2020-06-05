@@ -1,4 +1,4 @@
-import { render, wait } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import React, { Suspense } from 'react';
 
 import { Document } from '../../types/file';
@@ -48,11 +48,9 @@ describe('<Dashboard />', () => {
           </Suspense>,
         ),
       );
-      await wait();
-      getByText('Dashboard');
+      await waitFor(() => getByText('Dashboard'));
 
-      await wait();
-      getByTitle('dd44');
+      await waitFor(() => getByTitle('dd44'));
     });
   });
 
@@ -73,11 +71,9 @@ describe('<Dashboard />', () => {
           </Suspense>,
         ),
       );
-      await wait();
-      getByText('Dashboard');
+      await waitFor(() => getByText('Dashboard'));
 
-      await wait();
-      getByTitle('doc1');
+      await waitFor(() => getByTitle('doc1'));
     });
   });
 });

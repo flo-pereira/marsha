@@ -1,4 +1,4 @@
-import { render, wait } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 import { defineMessages } from 'react-intl';
@@ -80,7 +80,7 @@ describe('<DashboardTimedTextManager />', () => {
       ),
     );
 
-    await wait();
+    await waitFor(() => {});
 
     getByText('Our title');
     getByText('French');

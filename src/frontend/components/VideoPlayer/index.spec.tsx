@@ -1,4 +1,4 @@
-import { render, wait } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 import { ImportMock } from 'ts-mock-imports';
@@ -85,7 +85,7 @@ describe('VideoPlayer', () => {
     });
   });
 
-  afterEach(fetchMock.restore);
+  afterEach(() => fetchMock.restore());
   afterEach(jest.clearAllMocks);
 
   it('starts up the player with DashJS and renders all the relevant sources', async () => {
@@ -135,15 +135,16 @@ describe('VideoPlayer', () => {
     const { container, getByText, queryByText } = render(
       wrapInIntlProvider(<VideoPlayer video={appData.video!} />),
     );
-    await wait();
-
-    // The player is created and initialized with DashJS for adaptive bitrate
-    expect(mockCreatePlayer).toHaveBeenCalledWith(
-      'plyr',
-      expect.any(Element),
-      expect.anything(),
-      appData.video!,
+    await waitFor(() =>
+      // The player is created and initialized with DashJS for adaptive bitrate
+      expect(mockCreatePlayer).toHaveBeenCalledWith(
+        'plyr',
+        expect.any(Element),
+        expect.anything(),
+        appData.video!,
+      ),
     );
+
     expect(queryByText(/Download this video/i)).toEqual(null);
     getByText('Show a transcript');
     expect(container.querySelectorAll('track')).toHaveLength(2);
@@ -166,7 +167,7 @@ describe('VideoPlayer', () => {
     const { getByText } = render(
       wrapInIntlProvider(<VideoPlayer video={appData.video!} />),
     );
-    await wait();
+    await waitFor(() => {});
 
     getByText(/Download this video/i);
     getByText('Show a transcript');
@@ -178,15 +179,16 @@ describe('VideoPlayer', () => {
     const { container } = render(
       wrapInIntlProvider(<VideoPlayer video={appData.video!} />),
     );
-    await wait();
-
-    // The player is created and initialized with DashJS for adaptive bitrate
-    expect(mockCreatePlayer).toHaveBeenCalledWith(
-      'plyr',
-      expect.any(Element),
-      expect.anything(),
-      appData.video!,
+    await waitFor(() =>
+      // The player is created and initialized with DashJS for adaptive bitrate
+      expect(mockCreatePlayer).toHaveBeenCalledWith(
+        'plyr',
+        expect.any(Element),
+        expect.anything(),
+        appData.video!,
+      ),
     );
+
     expect(container.querySelectorAll('source[type="video/mp4"]')).toHaveLength(
       2,
     );
@@ -198,7 +200,7 @@ describe('VideoPlayer', () => {
     const { container } = render(
       wrapInIntlProvider(<VideoPlayer video={appData.video!} />),
     );
-    await wait();
+    await waitFor(() => {});
 
     expect(container.querySelectorAll('source[type="video/mp4"]')).toHaveLength(
       0,
@@ -230,7 +232,7 @@ describe('VideoPlayer', () => {
     const { container, getByText } = render(
       wrapInIntlProvider(<VideoPlayer video={appData.video!} />),
     );
-    await wait();
+    await waitFor(() => {});
 
     getByText('Show a transcript');
     expect(container.querySelector('option[value="ttt-1"]')).not.toBeNull();
@@ -265,7 +267,7 @@ describe('VideoPlayer', () => {
     const { container, getByText } = render(
       wrapInIntlProvider(<VideoPlayer video={appData.video!} />),
     );
-    await wait();
+    await waitFor(() => {});
 
     getByText('Show a transcript');
     expect(container.querySelector('option[value="ttt-1"]')).toBeNull();

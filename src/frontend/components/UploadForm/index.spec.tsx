@@ -1,4 +1,4 @@
-import { fireEvent, render, wait } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 
@@ -97,7 +97,7 @@ describe('UploadForm', () => {
 
   beforeEach(jest.resetAllMocks);
 
-  afterEach(fetchMock.restore);
+  afterEach(() => fetchMock.restore());
 
   it('renders the form by default', async () => {
     mockGetResource.mockResolvedValue(object);
@@ -108,7 +108,7 @@ describe('UploadForm', () => {
         ),
       ),
     );
-    await wait();
+    await waitFor(() => {});
 
     getByText('Create a new video');
   });
@@ -141,22 +141,24 @@ describe('UploadForm', () => {
         ),
       ),
     );
-    await wait();
+    await waitFor(() => {});
 
     fireEvent.drop(container.querySelector('input[type="file"]')!, {
       target: {
         files: [new File(['(⌐□_□)'], 'course.mp4', { type: 'video/mp4' })],
       },
     });
-    await wait();
-    expect(
-      fetchMock.called('/api/videos/video-id/initiate-upload/', {
-        method: 'POST',
-      }),
-    ).toBe(true);
-    await wait();
-    expect(fetchMock.called('/api/videos/video-id/', { method: 'PUT' })).toBe(
-      true,
+    await waitFor(() =>
+      expect(
+        fetchMock.called('/api/videos/video-id/initiate-upload/', {
+          method: 'POST',
+        }),
+      ).toBe(true),
+    );
+    await waitFor(() =>
+      expect(fetchMock.called('/api/videos/video-id/', { method: 'PUT' })).toBe(
+        true,
+      ),
     );
     expect(mockUploadFile).toHaveBeenCalled();
     // redirected to the dashboard
@@ -182,20 +184,21 @@ describe('UploadForm', () => {
         ),
       ),
     );
-    await wait();
+    await waitFor(() => {});
 
     fireEvent.change(container.querySelector('input[type="file"]')!, {
       target: {
         files: [new File(['(⌐□_□)'], 'course.mp4', { type: 'video/mp4' })],
       },
     });
-    await wait();
-    expect(
-      fetchMock.calls('/api/videos/video-id/initiate-upload/', {
-        method: 'POST',
-      }),
-    ).toHaveLength(1);
-    await wait();
+    await waitFor(() =>
+      expect(
+        fetchMock.calls('/api/videos/video-id/initiate-upload/', {
+          method: 'POST',
+        }),
+      ).toHaveLength(1),
+    );
+    await waitFor(() => {});
     expect(mockUploadFile).not.toHaveBeenCalled();
     // redirected to the dashboard
     getByText('error policy');

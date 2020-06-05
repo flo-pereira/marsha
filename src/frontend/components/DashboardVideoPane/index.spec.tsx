@@ -1,4 +1,4 @@
-import { cleanup, render, wait } from '@testing-library/react';
+import { cleanup, render, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 
@@ -20,7 +20,7 @@ const { ERROR, PENDING, PROCESSING, UPLOADING, READY } = uploadState;
 describe('<DashboardVideoPane />', () => {
   beforeEach(() => jest.useFakeTimers());
 
-  afterEach(fetchMock.restore);
+  afterEach(() => fetchMock.restore());
   afterEach(jest.resetAllMocks);
 
   const video = {
@@ -77,7 +77,7 @@ describe('<DashboardVideoPane />', () => {
     );
 
     jest.advanceTimersByTime(1000 * 60 + 200);
-    await wait();
+    await waitFor(() => {});
 
     expect(report).toHaveBeenCalledWith(new Error('Failed request'));
     getByText('Error Component: notFound');
@@ -106,7 +106,7 @@ describe('<DashboardVideoPane />', () => {
 
     // First backend call: the video is still processing
     jest.advanceTimersByTime(1000 * 60 + 200);
-    await wait();
+    await waitFor(() => {});
 
     expect(fetchMock.lastCall()![0]).toEqual('/api/videos/43/');
     expect(fetchMock.lastCall()![1]!.headers).toEqual({
@@ -126,7 +126,7 @@ describe('<DashboardVideoPane />', () => {
 
     // Second backend call
     jest.advanceTimersByTime(1000 * 60 + 200);
-    await wait();
+    await waitFor(() => {});
 
     expect(fetchMock.lastCall()![0]).toEqual('/api/videos/43/');
     expect(fetchMock.lastCall()![1]!.headers).toEqual({

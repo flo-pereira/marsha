@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, wait } from '@testing-library/react';
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 
@@ -36,7 +36,7 @@ describe('<TimedTextListItem />', () => {
     ),
   );
 
-  afterEach(fetchMock.restore);
+  afterEach(() => fetchMock.restore());
 
   const video = {
     description: '',
@@ -102,7 +102,7 @@ describe('<TimedTextListItem />', () => {
         ),
       ),
     );
-    await wait();
+    await waitFor(() => {});
 
     getByText('French');
     getByText((content) => content.startsWith('Ready'));
@@ -147,9 +147,10 @@ describe('<TimedTextListItem />', () => {
 
     // first backend call
     jest.advanceTimersByTime(1000 * 10 + 200);
-    await wait();
+    await waitFor(() =>
+      expect(fetchMock.lastCall()![0]).toEqual('/api/timedtexttracks/1/'),
+    );
 
-    expect(fetchMock.lastCall()![0]).toEqual('/api/timedtexttracks/1/');
     expect(
       queryByText((content) => content.startsWith('Ready')),
     ).not.toBeTruthy();
@@ -160,7 +161,7 @@ describe('<TimedTextListItem />', () => {
     for (let i = 2; i <= 20; i++) {
       timer = timer * i;
       jest.advanceTimersByTime(1000 * timer + 200);
-      await wait();
+      await waitFor(() => {});
 
       expect(fetchMock.calls('/api/timedtexttracks/1/').length).toEqual(i);
       expect(fetchMock.lastCall()![0]).toEqual('/api/timedtexttracks/1/');
@@ -200,9 +201,10 @@ describe('<TimedTextListItem />', () => {
 
       // first backend call
       jest.advanceTimersByTime(1000 * 10 + 200);
-      await wait();
+      await waitFor(() =>
+        expect(fetchMock.lastCall()![0]).toEqual('/api/timedtexttracks/1/'),
+      );
 
-      expect(fetchMock.lastCall()![0]).toEqual('/api/timedtexttracks/1/');
       expect(
         queryByText((content) => content.startsWith('Ready')),
       ).not.toBeTruthy();
@@ -216,7 +218,7 @@ describe('<TimedTextListItem />', () => {
 
       // Second backend call
       jest.advanceTimersByTime(1000 * 30 + 200);
-      await wait();
+      await waitFor(() => {});
       rerender(
         wrapInIntlProvider(
           wrapInRouter(<TimedTextListItem track={updatedTrack} />),
@@ -257,10 +259,10 @@ describe('<TimedTextListItem />', () => {
       );
 
       fireEvent.click(getByText('Delete'));
-      await wait();
-
-      expect(
-        fetchMock.called('/api/timedtexttracks/42/', { method: 'DELETE' }),
+      await waitFor(() =>
+        expect(
+          fetchMock.called('/api/timedtexttracks/42/', { method: 'DELETE' }),
+        ),
       );
       // TODO: check store deletion when we have a way to do so
     });

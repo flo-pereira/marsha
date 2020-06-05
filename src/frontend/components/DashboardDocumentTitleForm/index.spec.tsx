@@ -1,4 +1,4 @@
-import { fireEvent, render, wait } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import { Grommet } from 'grommet';
 import React from 'react';
@@ -16,7 +16,7 @@ jest.mock('../../data/appData', () => ({
 }));
 
 describe('DashboardDocumentTitleForm', () => {
-  afterEach(fetchMock.restore);
+  afterEach(() => fetchMock.restore());
 
   it('shows the title form', () => {
     const document = {
@@ -80,11 +80,12 @@ describe('DashboardDocumentTitleForm', () => {
       target: { value: 'updated document title' },
     });
     fireEvent.click(getByText('Submit'));
-    await wait();
-
-    expect(fetchMock.called('/api/documents/46/', { method: 'PUT' })).toBe(
-      true,
+    await waitFor(() =>
+      expect(fetchMock.called('/api/documents/46/', { method: 'PUT' })).toBe(
+        true,
+      ),
     );
+
     expect(inputTitle.value).toEqual('updated document title');
     getByText('Title successfully updated');
   });
@@ -115,10 +116,10 @@ describe('DashboardDocumentTitleForm', () => {
     const inputTitle = container.querySelector('#title');
     fireEvent.change(inputTitle!, { target: { value: 'Bar.pdf' } });
     fireEvent.click(getByText('Submit'));
-    await wait();
-
-    expect(fetchMock.called('/api/documents/47/', { method: 'PUT' })).toBe(
-      true,
+    await waitFor(() =>
+      expect(fetchMock.called('/api/documents/47/', { method: 'PUT' })).toBe(
+        true,
+      ),
     );
 
     getByText('Impossible to update the title. Try again later.');

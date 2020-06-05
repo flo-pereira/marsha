@@ -1,7 +1,7 @@
 import {
   getByText as getByTextInContainer,
   render,
-  wait,
+  waitFor,
 } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
@@ -44,7 +44,7 @@ describe('<DashboardTimedTextPane />', () => {
   );
 
   afterEach(jest.resetAllMocks);
-  afterEach(fetchMock.restore);
+  afterEach(() => fetchMock.restore());
 
   const video = {
     description: '',
@@ -117,7 +117,7 @@ describe('<DashboardTimedTextPane />', () => {
       wrapInIntlProvider(wrapInRouter(<DashboardTimedTextPane />)),
     );
 
-    await wait();
+    await waitFor(() => {});
     const closedCaptions = getByText('Closed captions');
     getByTextInContainer(closedCaptions.parentElement!, 'French');
     const subtitles = getByText('Subtitles');
@@ -143,7 +143,7 @@ describe('<DashboardTimedTextPane />', () => {
       ),
     );
 
-    await wait();
+    await waitFor(() => {});
     getByText('Error Component: notFound');
     expect(report).toBeCalledWith(new Error('Failed!'));
   });

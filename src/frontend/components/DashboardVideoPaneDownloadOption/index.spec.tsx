@@ -1,4 +1,4 @@
-import { fireEvent, render, wait } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 import { act } from 'react-dom/test-utils';
@@ -12,7 +12,7 @@ jest.mock('../../data/appData', () => ({
 }));
 
 describe('<DashboardVideoPaneDownloadOption />', () => {
-  afterEach(fetchMock.restore);
+  afterEach(() => fetchMock.restore());
 
   const video = {
     description: 'Some description',
@@ -86,7 +86,7 @@ describe('<DashboardVideoPaneDownloadOption />', () => {
     act(() => {
       fireEvent.click(getByLabelText('Allow video download'));
     });
-    await wait();
+    await waitFor(() => {});
 
     expect(getByLabelText('Allow video download')).toHaveProperty(
       'checked',

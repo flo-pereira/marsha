@@ -1,4 +1,4 @@
-import { fireEvent, render, wait } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 
@@ -33,7 +33,7 @@ describe('<TimedTextCreationForm />', () => {
     );
   });
 
-  afterEach(fetchMock.restore);
+  afterEach(() => fetchMock.restore());
   afterEach(jest.resetAllMocks);
 
   it('renders and loads the language choices', async () => {
@@ -45,11 +45,8 @@ describe('<TimedTextCreationForm />', () => {
         />,
       ),
     );
-    await wait();
+    await waitFor(() => getByText('Add a language'));
 
-    await wait();
-
-    getByText('Add a language');
     getByText('Select...');
     expect(
       fetchMock.calls('/api/timedtexttracks/', { method: 'OPTIONS' }).length,
@@ -90,7 +87,7 @@ describe('<TimedTextCreationForm />', () => {
         ),
       ),
     );
-    await wait();
+    await waitFor(() => {});
 
     getByText('Select...');
     const input = container.querySelector('input');
@@ -115,7 +112,7 @@ describe('<TimedTextCreationForm />', () => {
       method: 'POST',
     });
 
-    await wait();
+    await waitFor(() => {});
     getByText('Upload form: timedtexttracks 42');
   });
 
@@ -140,7 +137,7 @@ describe('<TimedTextCreationForm />', () => {
         ),
       ),
     );
-    await wait();
+    await waitFor(() => {});
     const input = container.querySelector('input');
     fireEvent.change(input!, { target: { value: 'French' } });
     fireEvent.keyDown(input!, { keyCode: 9, key: 'Tab' });
@@ -149,7 +146,7 @@ describe('<TimedTextCreationForm />', () => {
     const button = getByText('Upload the file');
     fireEvent.click(button);
 
-    await wait();
+    await waitFor(() => {});
 
     getByText('There was an error during track creation.');
     expect(report).toHaveBeenCalledWith(

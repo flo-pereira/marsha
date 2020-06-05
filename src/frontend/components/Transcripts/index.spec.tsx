@@ -1,4 +1,4 @@
-import { fireEvent, render, wait } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 
@@ -70,13 +70,13 @@ describe('<Transcripts />', () => {
     ),
   );
 
-  afterEach(fetchMock.restore);
+  afterEach(() => fetchMock.restore());
 
   it('displays a list of available transcripts', async () => {
     const { getByText, queryByText } = render(
       wrapInIntlProvider(<Transcripts transcripts={transcripts} />),
     );
-    await wait();
+    await waitFor(() => {});
 
     getByText('Choose a language');
     expect(getByText('French').tagName).toEqual('OPTION');
@@ -87,13 +87,13 @@ describe('<Transcripts />', () => {
   it('shows the transcript when the user selects a language', async () => {
     fetchMock.mock('https://example.com/vtt/fr.vtt', transcriptContent);
 
-    const { debug, getByLabelText, getByText } = render(
+    const { getByLabelText, getByText } = render(
       wrapInIntlProvider(<Transcripts transcripts={transcripts} />),
     );
 
     const select = getByLabelText('Show a transcript');
     fireEvent.change(select, { target: { value: '1' } });
-    await wait();
+    await waitFor(() => {});
     // TODO: make sure the transcript is displayed
     getByText('Hide transcript');
   });

@@ -1,4 +1,4 @@
-import { fireEvent, render, wait } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 import { act } from 'react-dom/test-utils';
@@ -146,7 +146,7 @@ describe('<DashboardVideoPaneTranscriptOption />', () => {
     act(() => {
       fireEvent.click(getByLabelText('Use subtitles as transcripts'));
     });
-    await wait();
+    await waitFor(() => {});
 
     expect(getByLabelText('Use subtitles as transcripts')).toHaveProperty(
       'checked',
