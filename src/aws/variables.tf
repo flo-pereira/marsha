@@ -25,6 +25,10 @@ variable "update_state_endpoint" {
   type    = "string"
 }
 
+variable "update_live_state_endpoint" {
+  type    = "string"
+}
+
 variable "update_state_secret" {
   type    = "string"
 }

@@ -160,3 +160,33 @@ data "aws_lambda_invocation" "invoke_migration" {
   function_name     = "${aws_lambda_function.marsha_migrate_lambda.function_name}"
   input = "{}"
 }
+
+# MediaLive
+###########
+
+resource "aws_lambda_function" "marsha_medialive_lambda" {
+  function_name    = "${terraform.workspace}-marsha-medialive"
+  handler          = "index.handler"
+  # Run on the highest version of node available on AWS lambda
+  # https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html#SSS-CreateFunction-request-Runtime
+  runtime          = "nodejs10.x"
+  filename         = "dist/marsha_medialive.zip"
+  source_code_hash = "${base64sha256(file("dist/marsha_medialive.zip"))}"
+  role             = "${aws_iam_role.lambda_medialive_invocation_role.arn}"
+
+  environment {
+    variables = {
+      DISABLE_SSL_VALIDATION = "${var.update_state_disable_ssl_validation}"
+      ENDPOINT = "${var.update_live_state_endpoint}"
+      SHARED_SECRET = "${var.update_state_secret}"
+    }
+  }
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch_medialive" {
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = "${aws_lambda_function.marsha_medialive_lambda.arn}"
+  principal     = "events.amazonaws.com"
+  source_arn    = "${aws_cloudwatch_event_rule.marsha_medialive_channel_state_change.arn}"
+}
