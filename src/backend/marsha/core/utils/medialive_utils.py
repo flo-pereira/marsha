@@ -283,3 +283,9 @@ def create_live_stream(key):
             },
         },
     }
+
+
+def start_medialive_channel(channel_id):
+    """Start an existing medialive channel."""
+    medialive_client.start_channel(ChannelId=channel_id)
+
