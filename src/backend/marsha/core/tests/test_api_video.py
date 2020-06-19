@@ -1252,3 +1252,180 @@ class VideoAPITest(TestCase):
             )
         self.assertEqual(response.status_code, 400)
 
+    def test_api_video_stop_live_anonymous_user(self):
+        """Anonymous users are not allowed to stop a live."""
+        video = VideoFactory()
+
+        response = self.client.post("/api/videos/{!s}/stop-live/".format(video.id))
+
+        self.assertEqual(response.status_code, 401)
+        content = json.loads(response.content)
+        self.assertEqual(
+            content, {"detail": "Authentication credentials were not provided."}
+        )
+
+    def test_api_video_instructor_stop_live_in_read_only(self):
+        """An instructor with read_only set to true should not be able to stop a live."""
+        video = VideoFactory()
+        jwt_token = AccessToken()
+        jwt_token.payload["resource_id"] = str(video.id)
+        jwt_token.payload["roles"] = [random.choice(["instructor", "administrator"])]
+        jwt_token.payload["permissions"] = {"can_update": False}
+
+        response = self.client.post(
+            "/api/videos/{!s}/stop-live/".format(video.id),
+            HTTP_AUTHORIZATION="Bearer {!s}".format(jwt_token),
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_api_video_student_stop_live(self):
+        """A student should not be able to stop a live."""
+        video = VideoFactory()
+        jwt_token = AccessToken()
+        jwt_token.payload["resource_id"] = str(video.id)
+        jwt_token.payload["roles"] = ["student"]
+
+        response = self.client.post(
+            "/api/videos/{!s}/stop-live/".format(video.id),
+            HTTP_AUTHORIZATION="Bearer {!s}".format(jwt_token),
+        )
+
+        self.assertEqual(response.status_code, 403)
+        content = json.loads(response.content)
+        self.assertEqual(
+            content, {"detail": "You do not have permission to perform this action."}
+        )
+
+    def test_api_video_stop_live_staff_or_user(self):
+        """Users authenticated via a session should not be able to stop a live."""
+        for user in [UserFactory(), UserFactory(is_staff=True)]:
+            self.client.login(username=user.username, password="test")
+            video = VideoFactory()
+
+            response = self.client.post("/api/videos/{!s}/stop-live/".format(video.id))
+            self.assertEqual(response.status_code, 401)
+            content = json.loads(response.content)
+            self.assertEqual(
+                content, {"detail": "Authentication credentials were not provided."}
+            )
+
+    def test_api_video_instructor_stop_live(self):
+        """An instructor should be able to stop a live."""
+        video = VideoFactory(
+            id="27a23f52-3379-46a2-94fa-697b59cfe3c7",
+            upload_state=LIVE,
+            live_state=LIVE,
+            live_info={
+                "medialive": {
+                    "input": {
+                        "id": "medialive_input_1",
+                        "endpoints": [
+                            "https://live_endpoint1",
+                            "https://live_endpoint2",
+                        ],
+                    },
+                    "channel": {"id": "medialive_channel_1"},
+                },
+                "mediapackage": {
+                    "id": "mediapackage_channel_1",
+                    "endpoints": {
+                        "cmaf": {
+                            "id": "endpoint1",
+                            "url": "https://channel_endpoint1/live.m3u8",
+                        },
+                        "dash": {
+                            "id": "endpoint2",
+                            "url": "https://channel_endpoint2/live.mpd",
+                        },
+                    },
+                },
+            },
+        )
+        jwt_token = AccessToken()
+        jwt_token.payload["resource_id"] = str(video.id)
+        jwt_token.payload["roles"] = [random.choice(["instructor", "administrator"])]
+        jwt_token.payload["permissions"] = {"can_update": True}
+
+        # start a live video,
+        with mock.patch.object(api, "stop_medialive_channel"):
+            response = self.client.post(
+                "/api/videos/{!s}/stop-live/".format(video.id),
+                HTTP_AUTHORIZATION="Bearer {!s}".format(jwt_token),
+            )
+        self.assertEqual(response.status_code, 200)
+        content = json.loads(response.content)
+
+        self.assertEqual(
+            content,
+            {
+                "description": video.description,
+                "id": str(video.id),
+                "title": video.title,
+                "active_stamp": None,
+                "is_ready_to_show": False,
+                "show_download": True,
+                "upload_state": "live",
+                "thumbnail": None,
+                "timed_text_tracks": [],
+                "urls": {
+                    "manifests": {
+                        "hls": "https://channel_endpoint1/live.m3u8",
+                        "dash": "https://channel_endpoint2/live.mpd",
+                    },
+                    "mp4": {},
+                    "thumbnails": {},
+                },
+                "should_use_subtitle_as_transcript": False,
+                "has_transcript": False,
+                "live_state": "stopped",
+                "live_info": {
+                    "medialive": {
+                        "input": {
+                            "endpoints": [
+                                "https://live_endpoint1",
+                                "https://live_endpoint2",
+                            ],
+                        }
+                    }
+                },
+            },
+        )
+
+    def test_api_instructor_stop_non_live_video(self):
+        """An instructor should not stop a video when not in live mode."""
+        video = VideoFactory(
+            id="27a23f52-3379-46a2-94fa-697b59cfe3c7",
+            upload_state=random.choice([s[0] for s in STATE_CHOICES if s[0] != "live"]),
+        )
+        jwt_token = AccessToken()
+        jwt_token.payload["resource_id"] = str(video.id)
+        jwt_token.payload["roles"] = [random.choice(["instructor", "administrator"])]
+        jwt_token.payload["permissions"] = {"can_update": True}
+
+        # start a live video,
+        with mock.patch.object(api, "stop_medialive_channel"):
+            response = self.client.post(
+                "/api/videos/{!s}/stop-live/".format(video.id),
+                HTTP_AUTHORIZATION="Bearer {!s}".format(jwt_token),
+            )
+        self.assertEqual(response.status_code, 400)
+
+    def test_api_instructor_stop_non_running_live(self):
+        """An instructor should not stop a video when not in live state."""
+        video = VideoFactory(
+            id="27a23f52-3379-46a2-94fa-697b59cfe3c7",
+            upload_state=LIVE,
+            live_state=random.choice([s[0] for s in LIVE_CHOICES if s[0] != "live"]),
+        )
+        jwt_token = AccessToken()
+        jwt_token.payload["resource_id"] = str(video.id)
+        jwt_token.payload["roles"] = [random.choice(["instructor", "administrator"])]
+        jwt_token.payload["permissions"] = {"can_update": True}
+
+        # start a live video,
+        with mock.patch.object(api, "stop_medialive_channel"):
+            response = self.client.post(
+                "/api/videos/{!s}/stop-live/".format(video.id),
+                HTTP_AUTHORIZATION="Bearer {!s}".format(jwt_token),
+            )
+        self.assertEqual(response.status_code, 400)
