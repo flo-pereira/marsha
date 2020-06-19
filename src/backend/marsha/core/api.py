@@ -103,6 +103,54 @@ def update_state(request):
     return Response({"success": True})
 
 
+@api_view(["POST"])
+def update_live_state(request):
+    """View handling AWS POST request to update the video live state.
+
+    Parameters
+    ----------
+    request : Type[django.http.request.HttpRequest]
+        The request on the API endpoint, it should contain a payload with the following fields:
+            - key: the video primary key,
+            - state: state of the live, should be "live" or "stopped",
+
+    Returns
+    -------
+    Type[rest_framework.response.Response]
+        HttpResponse acknowledging the success or failure of the live state update operation.
+
+    """
+    msg = request.body
+    serializer = serializers.UpdateLiveStateSerializer(data=request.data)
+
+    if serializer.is_valid() is not True:
+        return Response(serializer.errors, status=400)
+
+    # Check if the provided signature is valid against any secret in our list
+    #
+    # We need to do this to support 2 or more versions of our infrastructure at the same time.
+    # It then enables us to do updates and change the secret without incurring downtime.
+    signature_is_valid = any(
+        request.headers.get("X-Marsha-Signature")
+        == hmac.new(
+            secret.encode("utf-8"), msg=msg, digestmod=hashlib.sha256
+        ).hexdigest()
+        for secret in settings.UPDATE_STATE_SHARED_SECRETS
+    )
+
+    if not signature_is_valid:
+        return Response("Forbidden", status=403)
+
+    updated = Video.objects.filter(id=serializer.validated_data["key"]).update(
+        live_state=serializer.validated_data["state"]
+    )
+
+    if updated:
+        return Response({"success": True})
+
+    return Response({"success": False}, status=404)
+
+
 class VideoViewSet(
     mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
 ):

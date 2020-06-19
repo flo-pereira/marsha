@@ -15,6 +15,7 @@ from marsha.core.api import (
     TimedTextTrackViewSet,
     VideoViewSet,
     XAPIStatementView,
+    update_live_state,
     update_state,
 )
 from marsha.core.views import DevelopmentLTIView, DocumentLTIView, VideoLTIView
@@ -40,6 +41,7 @@ urlpatterns = [
     ),
     # API
     path("api/update-state", update_state, name="update_state"),
+    path("api/update-live-state", update_live_state, name="update_live_state"),
     path(
         "api/schema",
         get_schema_view(title="Marsha API", renderer_classes=[CoreJSONRenderer]),

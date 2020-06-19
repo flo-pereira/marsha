@@ -481,6 +481,15 @@ class UpdateStateSerializer(serializers.Serializer):
         return elements
 
 
+class UpdateLiveStateSerializer(serializers.Serializer):
+    """A serializer vailidating data submitted on the UpdateLiveState API endpoint."""
+
+    key = serializers.RegexField(re.compile(f"^{UUID_REGEX}$"))
+    state = serializers.ChoiceField(
+        tuple(c for c in LIVE_CHOICES if c[0] in (LIVE, STOPPED))
+    )
+
+
 class InitiateUploadSerializer(serializers.Serializer):
     """A serializer to validate data submitted on the initiate-upload API endoint."""
 
