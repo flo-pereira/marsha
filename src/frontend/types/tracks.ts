@@ -26,6 +26,14 @@ export enum uploadState {
   PROCESSING = 'processing',
   READY = 'ready',
   UPLOADING = 'uploading',
+  LIVE = 'live',
+}
+
+export enum liveState {
+  IDLE = 'idle',
+  STARTING = 'starting',
+  LIVE = 'live',
+  STOPPED = 'stopped',
 }
 
 /** Possible modes for a timed text track.
@@ -85,11 +93,19 @@ export interface Video extends Resource {
       dash: string;
       hls: string;
     };
-    mp4: urls;
-    thumbnails: urls;
+    mp4: Partial<urls>;
+    thumbnails: Partial<urls>;
   };
   should_use_subtitle_as_transcript: boolean;
   has_transcript: boolean;
+  live_state: Nullable<liveState>;
+  live_info: {
+    medialive?: {
+      input: {
+        endpoints: string[];
+      };
+    };
+  };
 }
 
 export type UploadableObject = TimedText | Video | Thumbnail | Document;
