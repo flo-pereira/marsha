@@ -53,6 +53,8 @@ describe('<DashboardVideoPaneTranscriptOption />', () => {
       },
     },
     should_use_subtitle_as_transcript: false,
+    live_state: null,
+    live_info: {},
   };
 
   it('renders nothing if there is no timed text track', () => {

@@ -45,6 +45,8 @@ describe('<DashboardVideoPaneDownloadOption />', () => {
       },
     },
     should_use_subtitle_as_transcript: false,
+    live_state: null,
+    live_info: {},
   };
 
   it('renders with checkbox not checked', () => {

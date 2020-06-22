@@ -1,6 +1,7 @@
 import { Box } from 'grommet';
 import React, { useEffect } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
+import { Redirect } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { pollForTrack } from '../../data/sideEffects/pollForTrack';
@@ -14,9 +15,10 @@ import { DashboardObjectProgress } from '../DashboardObjectProgress';
 import { DashboardPaneButtons } from '../DashboardPaneButtons';
 import { DashboardPaneHelptext } from '../DashboardPaneHelptext';
 import DocumentPlayer from '../DocumentPlayer';
+import { ERROR_COMPONENT_ROUTE } from '../ErrorComponent/route';
 import { UploadStatusPicker } from '../UploadStatusPicker';
 
-const { ERROR, PENDING, PROCESSING, READY, UPLOADING } = uploadState;
+const { ERROR, PENDING, PROCESSING, READY, UPLOADING, LIVE } = uploadState;
 
 const messages = defineMessages({
   filename: {
@@ -137,6 +139,8 @@ const DashboardDocument = (props: DashboardDocumentProps) => {
           />
         </DashboardDocumentInnerContainer>
       );
+    case LIVE:
+      return <Redirect push to={ERROR_COMPONENT_ROUTE('liveIncompatible')} />;
   }
 };
 

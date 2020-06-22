@@ -4,7 +4,7 @@ import { defineMessages, FormattedMessage } from 'react-intl';
 import { modelName } from '../../types/models';
 import { uploadState } from '../../types/tracks';
 
-const { ERROR, PENDING, PROCESSING, READY, UPLOADING } = uploadState;
+const { ERROR, PENDING, PROCESSING, READY, UPLOADING, LIVE } = uploadState;
 
 const videoMessages = defineMessages({
   [ERROR]: {
@@ -39,9 +39,14 @@ const videoMessages = defineMessages({
       'Dashboard helptext to warn user not to navigate away during video upload.',
     id: 'components.Dashboard.DashboardPaneHelptext.videos.helptextUploading',
   },
+  [LIVE]: {
+    defaultMessage: 'Your video is in live mode',
+    description: 'Dashboard helptext for when the video is in live mode',
+    id: 'components.Dashboard.DashboardPaneHelptext.videos.helptextLivemode',
+  },
 });
 
-const videoDocuments = defineMessages({
+const documentMessages = defineMessages({
   [ERROR]: {
     defaultMessage:
       'There was an error with your document. Retry or upload another one.',
@@ -75,13 +80,18 @@ const videoDocuments = defineMessages({
     id:
       'components.Dashboard.DashboardPaneHelptext.documents.helptextUploading',
   },
+  [LIVE]: {
+    defaultMessage: 'Live mode is incompatible with documents',
+    description: 'Dashboard helptext for when a document is in live mode',
+    id: 'components.Dashboard.DashboardPaneHelptext.documents.helptextLivemode',
+  },
 });
 
 // messages are not directly nested in this object because the babel-plugin-react-intl
 // fails to parse it to extract them at build time.
 const messages = {
   [modelName.VIDEOS]: videoMessages,
-  [modelName.DOCUMENTS]: videoDocuments,
+  [modelName.DOCUMENTS]: documentMessages,
 };
 
 /** Props shape for the DashboardVideoPaneHelptext component. */

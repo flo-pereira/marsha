@@ -4,7 +4,7 @@ import { defineMessages, FormattedMessage } from 'react-intl';
 import { uploadState } from '../../types/tracks';
 import { statusIconKey, UploadStatus } from './UploadStatus';
 
-const { ERROR, PENDING, PROCESSING, READY, UPLOADING } = uploadState;
+const { ERROR, PENDING, PROCESSING, READY, UPLOADING, LIVE } = uploadState;
 
 const messages = defineMessages({
   [ERROR]: {
@@ -31,6 +31,11 @@ const messages = defineMessages({
     defaultMessage: 'Uploading',
     description: 'Status information for a video/audio/timed text track',
     id: 'components.UploadStatusPicker.UPLOADING',
+  },
+  [LIVE]: {
+    defaultMessage: 'Live',
+    description: 'Status information for a video/audio/timed text track',
+    id: 'components.UploadStatusPicker.LIVE',
   },
 });
 
