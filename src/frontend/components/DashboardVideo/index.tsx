@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { useVideo } from '../../data/stores/useVideo';
-import { Video } from '../../types/tracks';
+import { Video, uploadState } from '../../types/tracks';
 import { DashboardTimedTextPane } from '../DashboardTimedTextPane';
 import { DashboardVideoPane } from '../DashboardVideoPane';
 
@@ -15,7 +15,7 @@ const DashboardVideo = (props: DashboardVideoProps) => {
   return (
     <React.Fragment>
       <DashboardVideoPane video={video} />
-      <DashboardTimedTextPane />
+      {video.upload_state !== uploadState.LIVE && <DashboardTimedTextPane />}
     </React.Fragment>
   );
 };

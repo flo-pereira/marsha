@@ -3,7 +3,7 @@ import fetchMock from 'fetch-mock';
 import React from 'react';
 
 import { DashboardVideoPane } from '.';
-import { uploadState } from '../../types/tracks';
+import { liveState, uploadState } from '../../types/tracks';
 import { report } from '../../utils/errors/report';
 import { wrapInIntlProvider } from '../../utils/tests/intl';
 import { wrapInRouter } from '../../utils/tests/router';
@@ -15,13 +15,15 @@ jest.mock('../../data/appData', () => ({
 }));
 jest.mock('../../utils/errors/report', () => ({ report: jest.fn() }));
 
-const { ERROR, PENDING, PROCESSING, UPLOADING, READY } = uploadState;
+const { ERROR, LIVE, PENDING, PROCESSING, UPLOADING, READY } = uploadState;
 
 describe('<DashboardVideoPane />', () => {
   beforeEach(() => jest.useFakeTimers());
 
-  afterEach(fetchMock.restore);
-  afterEach(jest.resetAllMocks);
+  afterEach(() => {
+    fetchMock.restore();
+    jest.resetAllMocks();
+  });
 
   const video = {
     description: '',
@@ -54,6 +56,8 @@ describe('<DashboardVideoPane />', () => {
       },
     },
     should_use_subtitle_as_transcript: false,
+    live_state: null,
+    live_info: {},
   };
 
   it('redirects to error when it fails to fetch the video', async () => {
@@ -190,6 +194,10 @@ describe('<DashboardVideoPane />', () => {
 
   it('shows the buttons only when the video is pending or ready', async () => {
     for (const state of Object.values(uploadState)) {
+      if (state === LIVE) {
+        continue;
+      }
+
       const { getByText, queryByText } = render(
         wrapInIntlProvider(
           wrapInRouter(
@@ -225,6 +233,9 @@ describe('<DashboardVideoPane />', () => {
 
   it('shows the thumbnail only when the video is ready', async () => {
     for (const state of Object.values(uploadState)) {
+      if (state === LIVE) {
+        continue;
+      }
       const { getByAltText, queryByAltText } = render(
         wrapInIntlProvider(
           wrapInRouter(
@@ -249,6 +260,9 @@ describe('<DashboardVideoPane />', () => {
 
   it('shows the upload progress only when the video is uploading', () => {
     for (const state of Object.values(uploadState)) {
+      if (state === LIVE) {
+        continue;
+      }
       const { getByText, queryByText } = render(
         wrapInIntlProvider(
           wrapInRouter(
@@ -266,6 +280,42 @@ describe('<DashboardVideoPane />', () => {
         getByText('0%');
       } else {
         expect(queryByText('0%')).toEqual(null);
+      }
+      cleanup();
+    }
+  });
+
+  it('shows the video live dashboard when the video is live', () => {
+    for (const state of Object.values(uploadState)) {
+      const { getByText, queryByText, debug } = render(
+        wrapInIntlProvider(
+          wrapInRouter(
+            <DashboardVideoPane
+              video={{
+                ...video,
+                is_ready_to_show: false,
+                upload_state: state,
+                live_state: liveState.IDLE,
+                live_info: {
+                  medialive: {
+                    input: {
+                      endpoints: [
+                        'https://live_endpoint1',
+                        'https://live_endpoint2',
+                      ],
+                    },
+                  },
+                },
+              }}
+            />,
+          ),
+        ),
+      );
+
+      if (state === LIVE) {
+        getByText('Streaming link');
+      } else {
+        expect(queryByText('Streaming link')).not.toBeInTheDocument();
       }
       cleanup();
     }

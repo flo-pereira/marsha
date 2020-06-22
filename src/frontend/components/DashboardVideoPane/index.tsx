@@ -15,12 +15,13 @@ import { DashboardObjectProgress } from '../DashboardObjectProgress';
 import { DashboardPaneButtons } from '../DashboardPaneButtons';
 import { DashboardPaneHelptext } from '../DashboardPaneHelptext';
 import { DashboardThumbnail } from '../DashboardThumbnail';
+import { DashboardVideoLive } from '../DashboardVideoLive';
 import { DashboardVideoPaneDownloadOption } from '../DashboardVideoPaneDownloadOption';
 import { DashboardVideoPaneTranscriptOption } from '../DashboardVideoPaneTranscriptOption';
 import { ERROR_COMPONENT_ROUTE } from '../ErrorComponent/route';
 import { UploadStatusPicker } from '../UploadStatusPicker';
 
-const { ERROR, PENDING, PROCESSING, READY, UPLOADING } = uploadState;
+const { ERROR, PENDING, PROCESSING, READY, UPLOADING, LIVE } = uploadState;
 
 const messages = defineMessages({
   title: {
@@ -164,6 +165,20 @@ export const DashboardVideoPane = ({ video }: DashboardVideoPaneProps) => {
             </Box>
           </Box>
           <DashboardPaneButtons object={video} objectType={modelName.VIDEOS} />
+        </DashboardVideoPaneInnerContainer>
+      );
+
+    case LIVE:
+      return (
+        <DashboardVideoPaneInnerContainer>
+          <Box direction={'row'}>
+            <Box basis={'1/2'} margin={'small'}>
+              {commonStatusLine}
+            </Box>
+            <Box basis={'1/2'} margin={'small'}>
+              <DashboardVideoLive video={video} />
+            </Box>
+          </Box>
         </DashboardVideoPaneInnerContainer>
       );
   }
