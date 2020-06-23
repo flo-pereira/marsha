@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 
@@ -73,15 +73,14 @@ describe('<Transcripts />', () => {
   afterEach(() => fetchMock.restore());
 
   it('displays a list of available transcripts', async () => {
-    const { getByText, queryByText } = render(
+    render(
       wrapInIntlProvider(<Transcripts transcripts={transcripts} />),
     );
-    await waitFor(() => {});
+    await screen.findByText('Choose a language');
 
-    getByText('Choose a language');
-    expect(getByText('French').tagName).toEqual('OPTION');
-    expect(getByText('English').tagName).toEqual('OPTION');
-    expect(queryByText('Hide transcript')).toEqual(null);
+    expect(screen.getByText('French').tagName).toEqual('OPTION');
+    expect(screen.getByText('English').tagName).toEqual('OPTION');
+    expect(screen.queryByText('Hide transcript')).toEqual(null);
   });
 
   it('shows the transcript when the user selects a language', async () => {
@@ -91,10 +90,9 @@ describe('<Transcripts />', () => {
       wrapInIntlProvider(<Transcripts transcripts={transcripts} />),
     );
 
-    const select = getByLabelText('Show a transcript');
+    const select = screen.getByLabelText('Show a transcript');
     fireEvent.change(select, { target: { value: '1' } });
-    await waitFor(() => {});
     // TODO: make sure the transcript is displayed
-    getByText('Hide transcript');
+    await screen.findByText('Hide transcript');
   });
 });

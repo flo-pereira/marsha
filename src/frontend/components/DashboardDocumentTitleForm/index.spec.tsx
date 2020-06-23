@@ -1,10 +1,11 @@
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import { Grommet } from 'grommet';
 import React from 'react';
 
 import { DashboardDocumentTitleForm } from '.';
 import { uploadState } from '../../types/tracks';
+import { Deferred } from '../../utils/tests/Deferred';
 import { wrapInIntlProvider } from '../../utils/tests/intl';
 
 jest.mock('jwt-decode', () => jest.fn());
@@ -45,6 +46,7 @@ describe('DashboardDocumentTitleForm', () => {
   });
 
   it('successfully update document title', async () => {
+    const deferred = new Deferred();
     const document = {
       description: '',
       extension: 'pdf',
@@ -57,14 +59,7 @@ describe('DashboardDocumentTitleForm', () => {
       url: 'https://example.com/document/45',
     };
 
-    fetchMock.mock(
-      '/api/documents/46/',
-      JSON.stringify({
-        ...document,
-        title: 'updated document title',
-      }),
-      { method: 'PUT' },
-    );
+    fetchMock.mock('/api/documents/46/', deferred.promise, { method: 'PUT' });
 
     const { container, getByText } = render(
       wrapInIntlProvider(
@@ -80,10 +75,16 @@ describe('DashboardDocumentTitleForm', () => {
       target: { value: 'updated document title' },
     });
     fireEvent.click(getByText('Submit'));
-    await waitFor(() =>
-      expect(fetchMock.called('/api/documents/46/', { method: 'PUT' })).toBe(
-        true,
+    await act(async () =>
+      deferred.resolve(
+        JSON.stringify({
+          ...document,
+          title: 'updated document title',
+        }),
       ),
+    );
+    expect(fetchMock.called('/api/documents/46/', { method: 'PUT' })).toBe(
+      true,
     );
 
     expect(inputTitle.value).toEqual('updated document title');
@@ -91,6 +92,7 @@ describe('DashboardDocumentTitleForm', () => {
   });
 
   it('fails to update document title', async () => {
+    const deferred = new Deferred();
     const document = {
       description: '',
       extension: 'pdf',
@@ -103,7 +105,7 @@ describe('DashboardDocumentTitleForm', () => {
       url: 'https://example.com/document/47',
     };
 
-    fetchMock.mock('/api/documents/47/', 400, { method: 'PUT' });
+    fetchMock.mock('/api/documents/47/', deferred.promise, { method: 'PUT' });
 
     const { container, getByText } = render(
       wrapInIntlProvider(
@@ -116,10 +118,10 @@ describe('DashboardDocumentTitleForm', () => {
     const inputTitle = container.querySelector('#title');
     fireEvent.change(inputTitle!, { target: { value: 'Bar.pdf' } });
     fireEvent.click(getByText('Submit'));
-    await waitFor(() =>
-      expect(fetchMock.called('/api/documents/47/', { method: 'PUT' })).toBe(
-        true,
-      ),
+    await act(async () => deferred.reject(400));
+
+    expect(fetchMock.called('/api/documents/47/', { method: 'PUT' })).toBe(
+      true,
     );
 
     getByText('Impossible to update the title. Try again later.');

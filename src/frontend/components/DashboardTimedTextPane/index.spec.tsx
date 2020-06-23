@@ -1,7 +1,7 @@
 import {
   getByText as getByTextInContainer,
   render,
-  waitFor,
+  screen,
 } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
@@ -113,16 +113,15 @@ describe('<DashboardTimedTextPane />', () => {
       },
     ]);
 
-    const { getByText } = render(
+    render(
       wrapInIntlProvider(wrapInRouter(<DashboardTimedTextPane />)),
     );
 
-    await waitFor(() => {});
-    const closedCaptions = getByText('Closed captions');
+    const closedCaptions = await screen.findByText('Closed captions');
     getByTextInContainer(closedCaptions.parentElement!, 'French');
-    const subtitles = getByText('Subtitles');
+    const subtitles = screen.getByText('Subtitles');
     getByTextInContainer(subtitles.parentElement!, 'English');
-    getByText('Transcripts');
+    screen.getByText('Transcripts');
   });
 
   it('redirects to the error view when the timedtexttrack list request fails', async () => {
@@ -143,8 +142,7 @@ describe('<DashboardTimedTextPane />', () => {
       ),
     );
 
-    await waitFor(() => {});
-    getByText('Error Component: notFound');
+    await screen.findByText('Error Component: notFound');
     expect(report).toBeCalledWith(new Error('Failed!'));
   });
 });

@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 
@@ -37,7 +37,7 @@ describe('<TimedTextCreationForm />', () => {
   afterEach(jest.resetAllMocks);
 
   it('renders and loads the language choices', async () => {
-    const { getByText } = render(
+    render(
       wrapInIntlProvider(
         <TimedTextCreationForm
           excludedLanguages={['en']}
@@ -45,15 +45,15 @@ describe('<TimedTextCreationForm />', () => {
         />,
       ),
     );
-    await waitFor(() => getByText('Add a language'));
+    await screen.findByText('Add a language')
 
-    getByText('Select...');
+    screen.getByText('Select...');
     expect(
       fetchMock.calls('/api/timedtexttracks/', { method: 'OPTIONS' }).length,
     ).toEqual(1);
   });
 
-  it('creates a timedtexttrack, adds it to store and retirects to the upload form', async () => {
+  it('creates a timedtexttrack, adds it to store and redirects to the upload form', async () => {
     fetchMock.mock(
       '/api/timedtexttracks/',
       {
@@ -69,7 +69,7 @@ describe('<TimedTextCreationForm />', () => {
       { method: 'POST' },
     );
 
-    const { container, getByText } = render(
+    render(
       wrapInIntlProvider(
         wrapInRouter(
           <TimedTextCreationForm
@@ -87,15 +87,15 @@ describe('<TimedTextCreationForm />', () => {
         ),
       ),
     );
-    await waitFor(() => {});
+    await screen.findByText('Add a language')
 
-    getByText('Select...');
-    const input = container.querySelector('input');
+    screen.getByText('Select...');
+    const input = screen.getByRole('textbox');
     fireEvent.change(input!, { target: { value: 'French' } });
     fireEvent.keyDown(input!, { keyCode: 9, key: 'Tab' });
-    fireEvent.click(getByText('French'));
+    fireEvent.click(screen.getByText('French'));
 
-    const button = getByText('Upload the file');
+    const button = screen.getByRole('button', {name: /Upload the file/i});
     fireEvent.click(button);
 
     expect(
@@ -111,9 +111,7 @@ describe('<TimedTextCreationForm />', () => {
       },
       method: 'POST',
     });
-
-    await waitFor(() => {});
-    getByText('Upload form: timedtexttracks 42');
+    await screen.findByText('Upload form: timedtexttracks 42')
   });
 
   it('shows an error message and reports the error when it fails to create a timedtexttrack', async () => {
@@ -137,18 +135,18 @@ describe('<TimedTextCreationForm />', () => {
         ),
       ),
     );
-    await waitFor(() => {});
-    const input = container.querySelector('input');
+    await screen.findByText('Add a language');
+
+    const input = screen.getByRole('textbox');
     fireEvent.change(input!, { target: { value: 'French' } });
     fireEvent.keyDown(input!, { keyCode: 9, key: 'Tab' });
-    fireEvent.click(getByText('French'));
+    fireEvent.click(screen.getByText('French'));
 
-    const button = getByText('Upload the file');
+    const button = screen.getByRole('button', {name: /Upload the file/i});
     fireEvent.click(button);
 
-    await waitFor(() => {});
+    await screen.findByText('There was an error during track creation.');
 
-    getByText('There was an error during track creation.');
     expect(report).toHaveBeenCalledWith(
       new Error('Failed to create a new TimedTextTrack with fr, st: 500.'),
     );

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 
@@ -83,7 +83,7 @@ describe('<TimedTextListItem />', () => {
   };
 
   it('renders a track, showing its language and status', async () => {
-    const { getByText } = render(
+    render(
       wrapInIntlProvider(
         wrapInRouter(
           <TimedTextListItem
@@ -102,10 +102,9 @@ describe('<TimedTextListItem />', () => {
         ),
       ),
     );
-    await waitFor(() => {});
 
-    getByText('French');
-    getByText((content) => content.startsWith('Ready'));
+    await screen.findByText('French');
+    screen.getByText((content) => content.startsWith('Ready'));
     // No polling takes place as the track is already READY
     expect(
       fetchMock.called('/api/timedtexttracks/1/', { method: 'GET' }),
@@ -128,7 +127,7 @@ describe('<TimedTextListItem />', () => {
       method: 'GET',
     });
 
-    const { getByText, queryByText } = render(
+    render(
       wrapInIntlProvider(
         wrapInRouter(<TimedTextListItem track={track} />, [
           {
@@ -141,6 +140,7 @@ describe('<TimedTextListItem />', () => {
       ),
     );
 
+    await screen.findByText('French');
     expect(
       fetchMock.called('/api/timedtexttracks/1/', { method: 'GET' }),
     ).not.toBeTruthy();
@@ -151,10 +151,8 @@ describe('<TimedTextListItem />', () => {
       expect(fetchMock.lastCall()![0]).toEqual('/api/timedtexttracks/1/'),
     );
 
-    expect(
-      queryByText((content) => content.startsWith('Ready')),
-    ).not.toBeTruthy();
-    getByText((content) => content.startsWith('Processing'));
+    expect(screen.queryByText('Ready')).toBeNull();
+    screen.getByText('Processing');
 
     let timer: number = 15;
 
@@ -165,10 +163,8 @@ describe('<TimedTextListItem />', () => {
 
       expect(fetchMock.calls('/api/timedtexttracks/1/').length).toEqual(i);
       expect(fetchMock.lastCall()![0]).toEqual('/api/timedtexttracks/1/');
-      expect(
-        queryByText((content) => content.startsWith('Ready')),
-      ).not.toBeTruthy();
-      getByText((content) => content.startsWith('Processing'));
+      expect(screen.queryByText('Ready')).toBeNull();
+      screen.getByText('Processing');
     }
   });
 

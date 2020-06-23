@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 import { ImportMock } from 'ts-mock-imports';
@@ -145,7 +145,7 @@ describe('VideoPlayer', () => {
       ),
     );
 
-    expect(queryByText(/Download this video/i)).toEqual(null);
+    expect(queryByText(/Download this video/i)).toBeNull();
     getByText('Show a transcript');
     expect(container.querySelectorAll('track')).toHaveLength(2);
     expect(
@@ -164,13 +164,10 @@ describe('VideoPlayer', () => {
     mockIsMSESupported.mockReturnValue(false);
     appData.video!.show_download = true;
 
-    const { getByText } = render(
-      wrapInIntlProvider(<VideoPlayer video={appData.video!} />),
-    );
-    await waitFor(() => {});
+    render(wrapInIntlProvider(<VideoPlayer video={appData.video!} />));
 
-    getByText(/Download this video/i);
-    getByText('Show a transcript');
+    await screen.findByText(/Download this video/i);
+    screen.getByText('Show a transcript');
   });
 
   it('does not use DashJS when MSE are not supported', async () => {
@@ -200,16 +197,17 @@ describe('VideoPlayer', () => {
     const { container } = render(
       wrapInIntlProvider(<VideoPlayer video={appData.video!} />),
     );
-    await waitFor(() => {});
+    await waitFor(() =>
+      expect(
+        container.querySelectorAll(
+          'source[type="application/vnd.apple.mpegURL"]',
+        ),
+      ).toHaveLength(1),
+    );
 
     expect(container.querySelectorAll('source[type="video/mp4"]')).toHaveLength(
       0,
     );
-    expect(
-      container.querySelectorAll(
-        'source[type="application/vnd.apple.mpegURL"]',
-      ),
-    ).toHaveLength(1);
   });
 
   it('uses subtitles as transcripts', async () => {
@@ -229,16 +227,15 @@ describe('VideoPlayer', () => {
       },
     ]);
 
-    const { container, getByText } = render(
+    const { container } = render(
       wrapInIntlProvider(<VideoPlayer video={appData.video!} />),
     );
-    await waitFor(() => {});
 
-    getByText('Show a transcript');
+    await screen.findByText('Show a transcript');
     expect(container.querySelector('option[value="ttt-1"]')).not.toBeNull();
   });
 
-  it('displays transcript while should_use_subtitle_as_transcript enabled', async () => {
+  it('displays transcript with should_use_subtitle_as_transcript enabled', async () => {
     mockIsHlsSupported.mockReturnValue(true);
     appData.video!.should_use_subtitle_as_transcript = true;
     appData.video!.has_transcript = true;
@@ -267,9 +264,8 @@ describe('VideoPlayer', () => {
     const { container, getByText } = render(
       wrapInIntlProvider(<VideoPlayer video={appData.video!} />),
     );
-    await waitFor(() => {});
 
-    getByText('Show a transcript');
+    await screen.findByText('Show a transcript');
     expect(container.querySelector('option[value="ttt-1"]')).toBeNull();
     expect(container.querySelector('option[value="ttt-2"]')).not.toBeNull();
   });

@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
 
@@ -101,16 +101,15 @@ describe('UploadForm', () => {
 
   it('renders the form by default', async () => {
     mockGetResource.mockResolvedValue(object);
-    const { getByText } = render(
+    render(
       wrapInIntlProvider(
         wrapInRouter(
           <UploadForm objectId={object.id} objectType={modelName.VIDEOS} />,
         ),
       ),
     );
-    await waitFor(() => {});
 
-    getByText('Create a new video');
+    await screen.findByText('Create a new video');
   });
 
   it('gets the policy from the API and uses it to upload the file', async () => {
@@ -128,7 +127,7 @@ describe('UploadForm', () => {
     mockUploadFile.mockResolvedValue(true);
     mockGetResource.mockResolvedValue(object);
 
-    const { container, getByText } = render(
+    const { container } = render(
       wrapInIntlProvider(
         wrapInRouter(
           <UploadForm objectId={object.id} objectType={modelName.VIDEOS} />,
@@ -141,7 +140,7 @@ describe('UploadForm', () => {
         ),
       ),
     );
-    await waitFor(() => {});
+    await screen.findByText('Create a new video');
 
     fireEvent.drop(container.querySelector('input[type="file"]')!, {
       target: {
@@ -162,7 +161,7 @@ describe('UploadForm', () => {
     );
     expect(mockUploadFile).toHaveBeenCalled();
     // redirected to the dashboard
-    getByText('dashboard');
+    screen.getByText('dashboard');
   });
 
   it('redirects to /errors/policy when it fails to trigger initiate-upload', async () => {
@@ -171,7 +170,7 @@ describe('UploadForm', () => {
     });
     mockGetResource.mockResolvedValue(object);
 
-    const { container, getByText } = render(
+    const { container } = render(
       wrapInIntlProvider(
         wrapInRouter(
           <UploadForm objectId={object.id} objectType={modelName.VIDEOS} />,
@@ -184,7 +183,7 @@ describe('UploadForm', () => {
         ),
       ),
     );
-    await waitFor(() => {});
+    await screen.findByText('Create a new video');
 
     fireEvent.change(container.querySelector('input[type="file"]')!, {
       target: {
@@ -201,6 +200,6 @@ describe('UploadForm', () => {
     await waitFor(() => {});
     expect(mockUploadFile).not.toHaveBeenCalled();
     // redirected to the dashboard
-    getByText('error policy');
+    screen.getByText('error policy');
   });
 });

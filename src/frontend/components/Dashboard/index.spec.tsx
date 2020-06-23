@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React, { Suspense } from 'react';
 
 import { Document } from '../../types/file';
@@ -41,16 +41,15 @@ describe('<Dashboard />', () => {
         upload_state: uploadState.PROCESSING,
       };
 
-      const { getByText, getByTitle } = render(
+      render(
         wrapInIntlProvider(
           <Suspense fallback={<Loader />}>
             <Dashboard video={mockVideo} objectType={modelName.VIDEOS} />
           </Suspense>,
         ),
       );
-      await waitFor(() => getByText('Dashboard'));
-
-      await waitFor(() => getByTitle('dd44'));
+      await screen.findByText('Dashboard');
+      await screen.findByTitle('dd44');
     });
   });
 
@@ -71,9 +70,9 @@ describe('<Dashboard />', () => {
           </Suspense>,
         ),
       );
-      await waitFor(() => getByText('Dashboard'));
 
-      await waitFor(() => getByTitle('doc1'));
+      await screen.findByText('Dashboard');
+      await screen.findByTitle('doc1');
     });
   });
 });
